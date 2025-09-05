@@ -1,103 +1,132 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Reveal from "reveal.js";
+import "reveal.js/dist/reveal.css";
+import "reveal.js/dist/theme/black.css"; // default; we’ll swap dynamically
+import DOMPurify from "isomorphic-dompurify";
+
+type Slide = {
+  title?: string;
+  subtitle?: string;
+  bullets?: string[];
+  imageUrl?: string;
+  notes?: string;
+};
+
+type Deck = {
+  theme: "black" | "white" | "league" | "beige" | "night" | "serif" | "simple" | "solarized";
+  ratio: "16:9" | "4:3";
+  slides: Slide[];
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [brief, setBrief] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [deck, setDeck] = useState<Deck>({ theme: "night", ratio: "16:9", slides: [] });
+  const deckRef = useRef<HTMLDivElement>(null);
+  const [themeHref, setThemeHref] = useState("/reveal-theme-night.css");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Swap theme CSS on the fly
+  useEffect(() => {
+    const map: Record<string,string> = {
+      black: "black", white: "white", league: "league", beige: "beige",
+      night: "night", serif: "serif", simple: "simple", solarized: "solarized",
+    };
+    const chosen = map[deck.theme] ?? "night";
+    setThemeHref(`/reveal-theme-${chosen}.css`);
+  }, [deck.theme]);
+
+  // Initialize Reveal when slides change
+  useEffect(() => {
+    if (!deckRef.current) return;
+    const deckInstance = new Reveal(deckRef.current, {
+      hash: true,
+      slideNumber: true,
+      width: deck.ratio === "4:3" ? 1024 : 1280,
+      height: deck.ratio === "4:3" ? 768 : 720,
+      margin: 0.06,
+      transition: "fade",
+    });
+    deckInstance.initialize();
+    return () => deckInstance.destroy();
+  }, [deck]);
+
+  const sanitizedSections = useMemo(() => {
+    return deck.slides.map((s, idx) => {
+      const bullets = s.bullets?.length
+        ? `<ul>${s.bullets.map(b => `<li>${DOMPurify.sanitize(b)}</li>`).join("")}</ul>` : "";
+      const img = s.imageUrl ? `<img src="${s.imageUrl}" alt="" style="width:100%;border-radius:12px;margin-top:12px" />` : "";
+      const subtitle = s.subtitle ? `<p style="opacity:.85">${DOMPurify.sanitize(s.subtitle)}</p>` : "";
+      const title = s.title ? `<h2>${DOMPurify.sanitize(s.title)}</h2>` : "";
+      return `<section data-index="${idx}">${title}${subtitle}${bullets}${img}</section>`;
+    }).join("\n");
+  }, [deck]);
+
+  const generate = async () => {
+    if (!brief.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brief }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      setDeck(json.deck as Deck);
+    } catch (e) {
+      alert("Generation failed. Check API keys in Vercel env and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportPDF = () => {
+    // Reveal has a built-in print stylesheet. Just open print dialog.
+    window.print();
+  };
+
+  return (
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[420px_1fr]">
+      {/* Left pane */}
+      <div className="p-5 border-r bg-[linear-gradient(180deg,#f7fbfe,white)]">
+        <h1 className="text-2xl font-semibold mb-2">Proposal/Presentation Generator</h1>
+        <p className="text-sm opacity-80 mb-4">Describe what you want. Be specific about audience, tone, visuals, and sections.</p>
+        <textarea
+          className="w-full h-48 p-3 rounded-lg border"
+          placeholder={`Ex: Create a 12-slide investor deck for a cybersecurity SaaS.\nTone: serious, enterprise.\nTheme: midnight blue.\nInclude: problem, market size, product demo, traction metrics, GTM, roadmap, team, ask.\nUse 1 hero image per section; factual tone; concise bullets.`}
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+        />
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg bg-black text-white"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {loading ? "Generating..." : "Generate"}
+          </button>
+          <button
+            onClick={exportPDF}
+            className="px-4 py-2 rounded-lg border"
           >
-            Read our docs
-          </a>
+            Export PDF
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="mt-6 text-xs opacity-70">
+          <p>Tip: Add target (VCs, enterprise buyer), tone (formal), color palette, image vibe, and required sections.</p>
+        </div>
+      </div>
+
+      {/* Right pane: Reveal container + dynamic theme link */}
+      <div className="relative">
+        <link rel="stylesheet" href={themeHref} />
+        <div ref={deckRef} className="reveal">
+          <div className="slides" dangerouslySetInnerHTML={{ __html: sanitizedSections }} />
+        </div>
+      </div>
     </div>
   );
 }
