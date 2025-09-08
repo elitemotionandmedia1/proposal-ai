@@ -26,7 +26,6 @@ export default function Home() {
   const deckRef = useRef<HTMLDivElement>(null);
   const [themeHref, setThemeHref] = useState("/reveal-theme-night.css");
 
-  // Swap theme CSS on the fly
   useEffect(() => {
     const map: Record<string, string> = {
       black: "black",
@@ -42,7 +41,6 @@ export default function Home() {
     setThemeHref(`/reveal-theme-${chosen}.css`);
   }, [deck.theme]);
 
-  // Initialize Reveal when slides change
   useEffect(() => {
     if (!deckRef.current) return;
     const deckInstance = new Reveal(deckRef.current, {
@@ -93,12 +91,11 @@ export default function Home() {
   };
 
   const exportPDF = () => {
-    window.print(); // Reveal has a print stylesheet
+    window.print();
   };
 
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-[420px_1fr]">
-      {/* Left pane */}
       <div className="p-5 border-r bg-[linear-gradient(180deg,#f7fbfe,white)]">
         <h1 className="text-2xl font-semibold mb-2">Proposal/Presentation Generator</h1>
         <p className="text-sm opacity-80 mb-4">
@@ -124,7 +121,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Right pane: Reveal container + dynamic theme link */}
       <div className="relative">
         <link rel="stylesheet" href={themeHref} />
         <div ref={deckRef} className="reveal">
