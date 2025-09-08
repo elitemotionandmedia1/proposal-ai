@@ -1,20 +1,13 @@
-/* Tailwind v3 syntax */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Light mode defaults */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+:root { --background:#ffffff; --foreground:#171717; }
 
 /* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  :root { --background:#0a0a0a; --foreground:#ededed; }
 }
 
 /* App base */
@@ -25,10 +18,7 @@ body {
 }
 
 /* Reveal (slides) polish + print tweaks */
-@media print {
-  /* Reveal’s PDF export */
-  .reveal .slides { box-shadow: none !important; }
-}
-.reveal h2 { letter-spacing: -0.02em; }
-.reveal ul { line-height: 1.4; }
-.reveal section { padding: 12px 24px; border-radius: 18px; }
+@media print { .reveal .slides { box-shadow: none !important; } }
+.reveal h2 { letter-spacing:-0.02em; }
+.reveal ul { line-height:1.4; }
+.reveal section { padding:12px 24px; border-radius:18px; }
