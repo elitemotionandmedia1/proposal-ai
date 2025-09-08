@@ -31,12 +31,12 @@ type AIResponse = {
   deck?: AIDeckInput;
 };
 
-type Slide = AISlideInput & { imageUrl?: string | null };
+type AISlide = AISlideInput & { imageUrl?: string | null };
 
 type Deck = {
   theme: Theme;
   ratio: Ratio;
-  slides: Slide[];
+  slides: AISlide[];
 };
 
 /* ==== Env ==== */
@@ -101,7 +101,6 @@ Rules:
   };
   const text = data.choices?.[0]?.message?.content ?? "{}";
 
-  // Parse safely. If bad JSON, fall back to empty object.
   try {
     return JSON.parse(text) as AIResponse;
   } catch {
@@ -142,18 +141,17 @@ export async function POST(req: NextRequest) {
 
     const ai = await askOpenAI(brief);
     const deckIn: AIDeckInput = ai.deck ?? {};
-
     const slidesIn: AISlideInput[] = Array.isArray(deckIn.slides)
       ? deckIn.slides
       : [];
 
-    const slides: Slide[] = await Promise.all(
-      slidesIn.map(async (s) => {
+    const slides: AISlide[] = await Promise.all(
+      slidesIn.map(async (s: AISlide) => {
         const imageUrl =
           s.imageQuery && s.imageQuery.trim().length > 0
             ? await pexelsImage(s.imageQuery)
             : null;
-        return { ...s, imageUrl };
+        return { ...s, imageUrl } as AISlide;
       })
     );
 
