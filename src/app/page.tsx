@@ -26,6 +26,7 @@ export default function Home() {
   const deckRef = useRef<HTMLDivElement>(null);
   const [themeHref, setThemeHref] = useState("/reveal-theme-night.css");
 
+  // Pick the right Reveal theme file
   useEffect(() => {
     const map: Record<string, string> = {
       black: "black",
@@ -41,6 +42,7 @@ export default function Home() {
     setThemeHref(`/reveal-theme-${chosen}.css`);
   }, [deck.theme]);
 
+  // Initialize Reveal.js whenever slides/ratio change
   useEffect(() => {
     if (!deckRef.current) return;
     const deckInstance = new Reveal(deckRef.current, {
@@ -55,6 +57,7 @@ export default function Home() {
     return () => deckInstance.destroy();
   }, [deck]);
 
+  // Build the HTML for each slide safely
   const sanitizedSections = useMemo(() => {
     return deck.slides
       .map((s, idx) => {
@@ -71,6 +74,7 @@ export default function Home() {
       .join("\n");
   }, [deck]);
 
+  // Call our API to generate slides
   const generate = async () => {
     if (!brief.trim()) return;
     setLoading(true);
@@ -84,18 +88,21 @@ export default function Home() {
       const json = await res.json();
       setDeck(json.deck as Deck);
     } catch {
+      // NOTE: no `(e)` here on purpose → avoids "unused e" warning
       alert("Generation failed. Check API keys in Vercel env and try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Print to PDF
   const exportPDF = () => {
     window.print();
   };
 
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-[420px_1fr]">
+      {/* Left: brief input */}
       <div className="p-5 border-r bg-[linear-gradient(180deg,#f7fbfe,white)]">
         <h1 className="text-2xl font-semibold mb-2">Proposal/Presentation Generator</h1>
         <p className="text-sm opacity-80 mb-4">
@@ -105,7 +112,7 @@ export default function Home() {
           className="w-full h-48 p-3 rounded-lg border"
           placeholder={`Ex: Create a 12-slide investor deck for a cybersecurity SaaS.\nTone: serious, enterprise.\nTheme: midnight blue.\nInclude: problem, market size, product demo, traction metrics, GTM, roadmap, team, ask.\nUse 1 hero image per section; factual tone; concise bullets.`}
           value={brief}
-          onChange={(e) => setBrief(e.target.value)}
+          onChange={(e) => setBrief(e.target.value)}  // OK: e is USED here
         />
         <div className="flex gap-2 mt-3">
           <button onClick={generate} disabled={loading} className="px-4 py-2 rounded-lg bg-black text-white">
@@ -121,6 +128,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Right: Reveal preview */}
       <div className="relative">
         <link rel="stylesheet" href={themeHref} />
         <div ref={deckRef} className="reveal">
