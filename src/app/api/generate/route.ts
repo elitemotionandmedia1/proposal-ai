@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       : [];
 
     const slides: AISlide[] = await Promise.all(
-      slidesIn.map(async (s: AISlide) => {
+      (slidesIn).map(async (s: AISlide) => {
         const imageUrl =
           s.imageQuery && s.imageQuery.trim().length > 0
             ? await pexelsImage(s.imageQuery)
