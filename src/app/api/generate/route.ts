@@ -31,12 +31,12 @@ type AIResponse = {
   deck?: AIDeckInput;
 };
 
-type AISlide = AISlideInput & { imageUrl?: string | null };
+type Slide = AISlideInput & { imageUrl?: string | null };
 
 type Deck = {
   theme: Theme;
   ratio: Ratio;
-  slides: AISlide[];
+  slides: Slide[];
 };
 
 /* ==== Env ==== */
@@ -139,19 +139,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Build deck safely without any `any`
     const ai = await askOpenAI(brief);
     const deckIn: AIDeckInput = ai.deck ?? {};
     const slidesIn: AISlideInput[] = Array.isArray(deckIn.slides)
       ? deckIn.slides
       : [];
 
-    const slides: AISlide[] = await Promise.all(
-      (slidesIn).map(async (s: AISlide) => {
+    const slides: Slide[] = await Promise.all(
+      slidesIn.map(async (s) => {
         const imageUrl =
           s.imageQuery && s.imageQuery.trim().length > 0
             ? await pexelsImage(s.imageQuery)
             : null;
-        return { ...s, imageUrl } as AISlide;
+        return { ...s, imageUrl };
       })
     );
 
@@ -163,6 +164,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ deck }, { status: 200 });
   } catch {
+    // no `(e)` here → avoids "unused var" lint
     return NextResponse.json({ error: "Failed to generate" }, { status: 500 });
   }
 }
